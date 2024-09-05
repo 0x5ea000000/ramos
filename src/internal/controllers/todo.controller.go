@@ -2,65 +2,63 @@ package controllers
 
 import (
 	"0x5ea000000/ramos/internal/entities"
+	"0x5ea000000/ramos/internal/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func CreateTodo(c *gin.Context) {
-	var newTodo entities.Todo
+type TodoController struct {
+	service services.TodoService
+}
 
-	// Bind JSON to the Todo struct
-	if err := c.ShouldBindJSON(&newTodo); err != nil {
+func NewTodoController(service services.TodoService) *TodoController {
+	return &TodoController{service: service}
+}
+
+func (h *TodoController) Get(c *gin.Context) {
+	id := c.Param("id")
+	todo, err := h.service.Get(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, todo)
+}
+
+func (h *TodoController) Create(c *gin.Context) {
+	var todo entities.Todo
+	if err := c.ShouldBindJSON(&todo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Add the new Todo to the todoList
-	entities.TodoList = append(entities.TodoList, newTodo)
-
-	c.JSON(http.StatusCreated, newTodo)
+	createdRating, err := h.service.Create(&todo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, createdRating)
 }
 
-// Get all Todos
-func GetTodos(c *gin.Context) {
-	c.JSON(http.StatusOK, entities.TodoList)
-}
-
-// Update a Todo
-func UpdateTodo(c *gin.Context) {
-	var updatedTodo entities.Todo
-	name := c.Param("name")
-
-	// Bind JSON to the Todo struct
-	if err := c.ShouldBindJSON(&updatedTodo); err != nil {
+func (h *TodoController) Update(c *gin.Context) {
+	var todo entities.Todo
+	if err := c.ShouldBindJSON(&todo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Find and update the Todo
-	for i, todo := range entities.TodoList {
-		if todo.Name == name {
-			entities.TodoList[i] = updatedTodo
-			c.JSON(http.StatusOK, updatedTodo)
-			return
-		}
+	updatedRating, err := h.service.Update(&todo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-
-	c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+	c.JSON(http.StatusOK, updatedRating)
 }
 
-// Delete a Todo
-func DeleteTodo(c *gin.Context) {
-	name := c.Param("name")
-
-	// Find and delete the Todo
-	for i, todo := range entities.TodoList {
-		if todo.Name == name {
-			entities.TodoList = append(entities.TodoList[:i], entities.TodoList[i+1:]...)
-			c.JSON(http.StatusOK, gin.H{"message": "Todo deleted"})
-			return
-		}
+func (h *TodoController) Delete(c *gin.Context) {
+	id := c.Param("id")
+	err := h.service.Delete(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-
-	c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+	c.Status(http.StatusNoContent)
 }
