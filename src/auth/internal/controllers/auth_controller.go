@@ -1,22 +1,31 @@
 package controllers
 
 import (
-	"0x5ea000000/ramos/pkg/models"
+	"0x5ea000000/ramos/auth/internal/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func Register(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+type AuthController struct {
+	authService services.AuthService
+}
+
+func NewAuthController(authService services.AuthService) *AuthController {
+	return &AuthController{authService: authService}
+}
+
+func (ctrl *AuthController) Register(c *gin.Context) {
+	var input struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	hashedPassword, _ := utils.HashPassword(user.Password)
-	user.Password = hashedPassword
-
-	if err := models.DB.Create(&user).Error; err != nil {
+	if err := ctrl.authService.Register(input.Username, input.Password); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -24,24 +33,22 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Registration successful"})
 }
 
-func Login(c *gin.Context) {
-	var input models.User
+func (ctrl *AuthController) Login(c *gin.Context) {
+	var input struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var user models.User
-	if err := models.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+	token, err := ctrl.authService.Login(input.Username, input.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	if !utils.CheckPasswordHash(input.Password, user.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-		return
-	}
-
-	token, _ := middleware.GenerateToken(user.Username)
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }

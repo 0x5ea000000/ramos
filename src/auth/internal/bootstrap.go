@@ -1,11 +1,11 @@
 package internal
 
 import (
+	"0x5ea000000/ramos/auth/internal/controllers"
+	"0x5ea000000/ramos/auth/internal/services"
 	"0x5ea000000/ramos/pkg/middlewares"
 	"0x5ea000000/ramos/pkg/models"
 	"0x5ea000000/ramos/pkg/repositories/database"
-	"0x5ea000000/ramos/todo/internal/controllers"
-	"0x5ea000000/ramos/todo/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -33,21 +33,15 @@ func Bootstrap() {
 
 	db.AutoMigrate(&models.Todo{})
 
-	repo := database.NewTodoRepository(db)
-	service := services.NewTodoService(repo)
-	controller := controllers.NewTodoController(service)
+	repo := database.NewAuthRepository(db)
+	service := services.NewAuthService(repo)
+	controller := controllers.NewAuthController(service)
 
 	// Create a new Todo
-	r.POST("/todo", controller.Create)
+	r.POST("/register", controller.Register)
 
 	// Get all Todos
-	r.GET("/todo", controller.Get)
-
-	// Update a Todo by name
-	r.PUT("/todo/:name", controller.Update)
-
-	// Delete a Todo by name
-	r.DELETE("/todo/:name", controller.Delete)
+	r.GET("/login", controller.Login)
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
