@@ -2,7 +2,7 @@ package internal
 
 import (
 	"0x5ea000000/ramos/pkg/models"
-	"0x5ea000000/ramos/pkg/models/repositories/database"
+	"0x5ea000000/ramos/pkg/repositories/database"
 	"0x5ea000000/ramos/todo/internal/controllers"
 	"0x5ea000000/ramos/todo/internal/middlewares"
 	"0x5ea000000/ramos/todo/internal/services"
